@@ -867,51 +867,28 @@ export function AnnotationCanvas({
           </div>
         </div>
 
-        <div className="px-6 py-6">
-          <div className={`flex flex-col gap-6${item.waterUrl ? " lg:flex-row" : ""}`}>
-            <div className="flex-1">
-              <div className="relative bg-gray-900 rounded-2xl">
-                <div className="overflow-auto max-h-[75vh] rounded-2xl">
-                  <div className="relative inline-block">
-                    <img
-                      ref={imageRef}
-                      src={item.imageUrl}
-                      alt={item.filename}
-                      className="block max-w-full h-auto"
-                      onLoad={() => {
-                        syncCanvasSize();
-                        drawOverlay();
-                      }}
-                    />
-                    <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-blue-600/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                      {t("fatView")}
-                    </span>
-                    <canvas
-                      ref={canvasRef}
-                      className="absolute inset-0 w-full h-full cursor-crosshair"
-                      onMouseDown={handleMouseDown}
-                      onMouseMove={handleMouseMove}
-                      onMouseUp={handleMouseUp}
-                      onMouseLeave={handleMouseLeave}
-                    />
-                  </div>
-                </div>
-              </div>
+        <div className="relative bg-gray-900">
+          <div className="overflow-auto max-h-[75vh]">
+            <div className="relative inline-block">
+              <img
+                ref={imageRef}
+                src={item.imageUrl}
+                alt={item.filename}
+                className="block max-w-full h-auto"
+                onLoad={() => {
+                  syncCanvasSize();
+                  drawOverlay();
+                }}
+              />
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full cursor-crosshair"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+              />
             </div>
-            {item.waterUrl && (
-              <div className="flex-1 lg:max-w-sm xl:max-w-md">
-                <div className="relative bg-gray-900 rounded-2xl overflow-hidden">
-                  <img
-                    src={item.waterUrl}
-                    alt={t("waterView")}
-                    className="block w-full h-auto"
-                  />
-                  <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-cyan-500/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                    {t("waterView")}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

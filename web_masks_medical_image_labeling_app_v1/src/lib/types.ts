@@ -18,7 +18,6 @@ export interface DatasetItem {
   imageUrl: string;
   maskUrl?: string | null;
   labelUrl?: string | null;
-  waterUrl?: string | null;
   width: number;
   height: number;
   annotationCount: number;

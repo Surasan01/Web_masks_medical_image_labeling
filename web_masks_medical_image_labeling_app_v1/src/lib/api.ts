@@ -161,7 +161,6 @@ export async function fetchDatasetItems(apiUrl: string, project: string, dataset
     imageUrl: resourceUrl(apiUrl, item.imageUrl) ?? item.imageUrl,
     maskUrl: resourceUrl(apiUrl, item.maskUrl) ?? item.maskUrl,
     labelUrl: resourceUrl(apiUrl, item.labelUrl) ?? item.labelUrl,
-    waterUrl: resourceUrl(apiUrl, item.waterUrl) ?? item.waterUrl,
   }));
 }
 
@@ -180,7 +179,6 @@ export async function fetchItemDetail(
     imageUrl: resourceUrl(apiUrl, detail.imageUrl) ?? detail.imageUrl,
     maskUrl: resourceUrl(apiUrl, detail.maskUrl) ?? detail.maskUrl,
     labelUrl: resourceUrl(apiUrl, detail.labelUrl) ?? detail.labelUrl,
-    waterUrl: resourceUrl(apiUrl, detail.waterUrl) ?? detail.waterUrl,
     annotations: detail.annotations ?? [],
   };
 }
