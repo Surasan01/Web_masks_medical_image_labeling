@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AnnotationPoint, AnnotationShape, DatasetItemDetail } from "../lib/types";
 import { useLanguage } from "../contexts/LanguageContext";
 
@@ -187,6 +187,7 @@ export function AnnotationCanvas({
   const [draftShape, setDraftShape] = useState<AnnotationShape | null>(null);
   const [polygonPoints, setPolygonPoints] = useState<AnnotationPoint[]>([]);
   const [selectionRect, setSelectionRect] = useState<Rect | null>(null);
+  const [activeModality, setActiveModality] = useState<"fat" | "water">("fat");
   const selectionStartRef = useRef<AnnotationPoint | null>(null);
 
   useEffect(() => {
@@ -196,6 +197,7 @@ export function AnnotationCanvas({
     setPolygonPoints([]);
     setSelectionRect(null);
     selectionStartRef.current = null;
+    setActiveModality("fat");
   }, [item.id, item.annotations]);
 
   useEffect(() => {
@@ -713,6 +715,32 @@ export function AnnotationCanvas({
     void Promise.resolve(onNextPending());
   };
 
+  const hasWater = Boolean(item.waterUrl);
+  const effectiveModality = activeModality === "water" && hasWater ? "water" : "fat";
+  const activeImageUrl = effectiveModality === "water" && hasWater ? item.waterUrl ?? item.imageUrl : item.imageUrl;
+  const activeBadgeKey = effectiveModality === "water" ? "waterView" : "fatView";
+  const referenceImageUrl = hasWater
+    ? effectiveModality === "water"
+      ? item.imageUrl
+      : item.waterUrl ?? null
+    : null;
+  const referenceBadgeKey = effectiveModality === "water" ? "fatView" : "waterView";
+
+  const handleModalityToggle = (mode: "fat" | "water") => {
+    if (mode === "water" && !hasWater) {
+      return;
+    }
+    setActiveModality(mode);
+  };
+
+  useEffect(() => {
+    const imageElement = imageRef.current;
+    if (imageElement && imageElement.complete) {
+      syncCanvasSize();
+      drawOverlay();
+    }
+  }, [activeImageUrl, drawOverlay, syncCanvasSize]);
+
   const annotationCount = useMemo(() => annotations.length, [annotations.length]);
 
   return (
@@ -826,6 +854,33 @@ export function AnnotationCanvas({
             </div>
           </div>
 
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 dark:text-gray-300">{t("modalityToggleLabel")}</span>
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <button
+                onClick={() => handleModalityToggle("fat")}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  effectiveModality === "fat"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                }`}
+              >
+                {t("useFat")}
+              </button>
+              <button
+                onClick={() => handleModalityToggle("water")}
+                disabled={!hasWater}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${
+                  effectiveModality === "water"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                } ${hasWater ? "" : "opacity-50 cursor-not-allowed"}`}
+              >
+                {t("useWater")}
+              </button>
+            </div>
+          </div>
+
           {tool === "polygon" && (
             <div className="flex items-center gap-2">
               <button
@@ -868,15 +923,15 @@ export function AnnotationCanvas({
         </div>
 
         <div className="px-6 py-6">
-          <div className={`flex flex-col gap-6${item.waterUrl ? " lg:flex-row" : ""}`}>
+          <div className={`flex flex-col gap-6${referenceImageUrl ? " lg:flex-row" : ""}`}>
             <div className="flex-1">
               <div className="relative bg-gray-900 rounded-2xl">
                 <div className="overflow-auto max-h-[75vh] rounded-2xl">
                   <div className="relative inline-block">
                     <img
                       ref={imageRef}
-                      src={item.imageUrl}
-                      alt={item.filename}
+                      src={activeImageUrl}
+                      alt={t(activeBadgeKey)}
                       className="block max-w-full h-auto"
                       onLoad={() => {
                         syncCanvasSize();
@@ -884,7 +939,7 @@ export function AnnotationCanvas({
                       }}
                     />
                     <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-blue-600/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                      {t("fatView")}
+                      {t(activeBadgeKey)}
                     </span>
                     <canvas
                       ref={canvasRef}
@@ -898,16 +953,16 @@ export function AnnotationCanvas({
                 </div>
               </div>
             </div>
-            {item.waterUrl && (
+            {referenceImageUrl && (
               <div className="flex-1 lg:max-w-sm xl:max-w-md">
                 <div className="relative bg-gray-900 rounded-2xl overflow-hidden">
                   <img
-                    src={item.waterUrl}
-                    alt={t("waterView")}
+                    src={referenceImageUrl}
+                    alt={t(referenceBadgeKey)}
                     className="block w-full h-auto"
                   />
                   <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-cyan-500/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                    {t("waterView")}
+                    {t(referenceBadgeKey)}
                   </span>
                 </div>
               </div>
