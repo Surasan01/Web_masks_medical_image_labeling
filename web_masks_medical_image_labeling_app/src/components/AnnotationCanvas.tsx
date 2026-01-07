@@ -37,6 +37,16 @@ const SELECTED_FILL_ALPHA = 0.32;
 const POLYGON_CLOSE_DISTANCE = 14;
 const FREEHAND_CLOSE_DISTANCE = 12;
 
+const MAX_UNDO_STACK = 50;
+
+function cloneAnnotations(shapes: AnnotationShape[]): AnnotationShape[] {
+  return shapes.map((shape) => ({
+    ...shape,
+    bbox: shape.bbox ? { ...shape.bbox } : undefined,
+    points: shape.points ? shape.points.map((point) => ({ ...point })) : undefined,
+  }));
+}
+
 function colorWithAlpha(color: string, alpha: number): string {
   if (!color.startsWith("#")) {
     return color;
@@ -176,6 +186,7 @@ export function AnnotationCanvas({
   const imageRef = useRef<HTMLImageElement>(null);
   const freehandPointsRef = useRef<AnnotationPoint[]>([]);
   const drawingColorRef = useRef<string>(COLORS[0]);
+  const undoStackRef = useRef<AnnotationShape[][]>([]);
   const { t } = useLanguage();
 
   const [annotations, setAnnotations] = useState<AnnotationShape[]>(item.annotations ?? []);
@@ -190,6 +201,17 @@ export function AnnotationCanvas({
   const [activeModality, setActiveModality] = useState<"fat" | "water">("fat");
   const selectionStartRef = useRef<AnnotationPoint | null>(null);
 
+  const toolRef = useRef<Tool>(tool);
+  const polygonPointsRef = useRef<AnnotationPoint[]>(polygonPoints);
+
+  useEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
+
+  useEffect(() => {
+    polygonPointsRef.current = polygonPoints;
+  }, [polygonPoints]);
+
   useEffect(() => {
     setAnnotations(item.annotations ?? []);
     setSelectedIds([]);
@@ -198,7 +220,51 @@ export function AnnotationCanvas({
     setSelectionRect(null);
     selectionStartRef.current = null;
     setActiveModality("fat");
+    undoStackRef.current = [];
   }, [item.id, item.annotations]);
+
+  const pushUndoSnapshot = useCallback((snapshot: AnnotationShape[]) => {
+    undoStackRef.current.push(cloneAnnotations(snapshot));
+    if (undoStackRef.current.length > MAX_UNDO_STACK) {
+      undoStackRef.current.shift();
+    }
+  }, []);
+
+  const undoLastAnnotationChange = useCallback(() => {
+    const previous = undoStackRef.current.pop();
+    if (!previous) return;
+    setAnnotations(previous);
+    setSelectedIds([]);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const isUndo = (event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z";
+      if (!isUndo) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      const tag = active?.tagName?.toLowerCase();
+      const isEditable =
+        Boolean(active?.isContentEditable) ||
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select";
+      if (isEditable) return;
+
+      event.preventDefault();
+
+      if (toolRef.current === "polygon" && polygonPointsRef.current.length > 0) {
+        setPolygonPoints((prev) => prev.slice(0, -1));
+        return;
+      }
+
+      undoLastAnnotationChange();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undoLastAnnotationChange]);
 
   useEffect(() => {
     if (!isDrawing && polygonPoints.length === 0) {
@@ -451,7 +517,10 @@ export function AnnotationCanvas({
       points: ensureClosed(points, FREEHAND_CLOSE_DISTANCE),
     };
 
-    setAnnotations((prev) => [...prev, newShape]);
+    setAnnotations((prev) => {
+      pushUndoSnapshot(prev);
+      return [...prev, newShape];
+    });
     setSelectedIds([newShape.id]);
     freehandPointsRef.current = [];
     setDraftShape(null);
@@ -476,7 +545,10 @@ export function AnnotationCanvas({
     if (tool === "erase") {
       const found = findAnnotationAt(coords);
       if (found) {
-        setAnnotations((prev) => prev.filter((shape) => shape.id !== found));
+        setAnnotations((prev) => {
+          pushUndoSnapshot(prev);
+          return prev.filter((shape) => shape.id !== found);
+        });
         setSelectedIds((prev) => prev.filter((id) => id !== found));
       }
       return;
@@ -573,7 +645,10 @@ export function AnnotationCanvas({
       },
     };
 
-    setAnnotations((prev) => [...prev, newShape]);
+    setAnnotations((prev) => {
+      pushUndoSnapshot(prev);
+      return [...prev, newShape];
+    });
     setSelectedIds([newShape.id]);
   };
 
@@ -588,11 +663,14 @@ export function AnnotationCanvas({
         points: ensureClosed(points, POLYGON_CLOSE_DISTANCE),
       };
 
-      setAnnotations((prev) => [...prev, newShape]);
+      setAnnotations((prev) => {
+        pushUndoSnapshot(prev);
+        return [...prev, newShape];
+      });
       setSelectedIds([newShape.id]);
       setPolygonPoints([]);
     },
-    [],
+    [pushUndoSnapshot],
   );
 
   const handleMouseUp = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -692,7 +770,10 @@ export function AnnotationCanvas({
 
   const handleDeleteSelected = () => {
     if (selectedIds.length === 0) return;
-    setAnnotations((prev) => prev.filter((shape) => !selectedIds.includes(shape.id)));
+    setAnnotations((prev) => {
+      pushUndoSnapshot(prev);
+      return prev.filter((shape) => !selectedIds.includes(shape.id));
+    });
     setSelectedIds([]);
   };
 
