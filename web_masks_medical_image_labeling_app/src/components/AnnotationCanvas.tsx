@@ -334,7 +334,7 @@ export function AnnotationCanvas({
       context.save();
       context.strokeStyle = color;
       const baseLineWidth = shape.type === "freehand" ? (selected ? 4 : 3) : 2;
-      context.lineWidth = dashed ? (shape.type === "freehand" ? 2 : 1.5) : baseLineWidth;
+      context.lineWidth = dashed ? (shape.type === "freehand" ? 1 : 0.75) : baseLineWidth;
       context.lineJoin = shape.type === "freehand" ? "round" : "miter";
       context.lineCap = shape.type === "freehand" ? "round" : "butt";
       if (dashed) {
@@ -386,7 +386,7 @@ export function AnnotationCanvas({
         context.save();
         context.setLineDash([5, 3]);
         context.strokeStyle = colorWithAlpha(color, 0.7);
-        context.lineWidth = 1;
+        context.lineWidth = 0.5;
         context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
         context.restore();
       }
@@ -428,7 +428,7 @@ export function AnnotationCanvas({
       context.setLineDash([3, 3]);
       context.strokeStyle = colorWithAlpha("#2563eb", 0.9);
       context.fillStyle = colorWithAlpha("#2563eb", 0.12);
-      context.lineWidth = 1;
+      context.lineWidth = 0.5;
       context.strokeRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
       context.fillRect(selectionRect.x, selectionRect.y, selectionRect.width, selectionRect.height);
       context.restore();
