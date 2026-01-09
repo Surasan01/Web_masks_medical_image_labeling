@@ -333,8 +333,8 @@ export function AnnotationCanvas({
 
       context.save();
       context.strokeStyle = color;
-      const baseLineWidth = shape.type === "freehand" ? (selected ? 4 : 3) : 2;
-      context.lineWidth = dashed ? (shape.type === "freehand" ? 1 : 0.75) : baseLineWidth;
+      const strokeWidth = shape.type === "freehand" ? 1 : 0.75;
+      context.lineWidth = strokeWidth;
       context.lineJoin = shape.type === "freehand" ? "round" : "miter";
       context.lineCap = shape.type === "freehand" ? "round" : "butt";
       if (dashed) {
